@@ -15,9 +15,9 @@
 
 8.Avoid anti-crossing induced by cavity, the length from input
     port to qubit is lc, for capacitance mirror,
-    set qubit f01 at node, f01 = (2n-1)*c/(4*L) = (2n-1)*alpha.
-                           f12 = 2*(n-1)*alpha
-                           lc = (4(n+k)/(4n-3) - 1)*L
+    set qubit f01 at node, f01 = (2n+1)*c/(4*L) = (2n+1)*alpha.
+                           f12 = 2*n*alpha
+                           lc = (4(n+k)/(4n+1) - 1)*L
 9. considering the bounding line length, lc at chip may be minus
     2.5 mm.
 '''
@@ -40,58 +40,44 @@ class TwoQubit():
         frequency = 0
         while frequency < 8*10**9:
             n += 1
-            frequency = (2*n-1)*self.alpha
+            frequency = (2*n+1)*self.alpha
             Freq.append(frequency)
         self.n = n-1
-        freq = Freq[-2]
-        SecFreq = Freq[-3]
-        return freq,SecFreq,n
+        self.freq = Freq[-2]
+        self.SecFreq = Freq[-3]
+        return self.freq,self.SecFreq,n
     def Freq12(self):
-        return 2*(self.n - 1)*self.alpha,2*(self.n - 2)*self.alpha
+        self.freq12 = 2*self.n*self.alpha
+        self.freq12sec = 2*(self.n - 1)*self.alpha
+        return self.freq12,self.freq12sec
     def AvoidAnti(self,k):
-        lc = (4*(self.n + k) / (4*self.n-3) - 1)*self.result
-        return lc
+        lc = (4*(self.n + k) / (4*self.n+1) - 1)*self.result
+        fc = 0.5*(self.n + k)*self.c/(self.result +lc)
+        return lc,fc
 
 if __name__ == '__main__':
 
     Alpha = [200*10**6,340*10**6]#Hz
     LightSpeed = [0.9*10**8,1.2*10**8] #m/s
+    coupling = ['weak','strong']
+    for couple in coupling:
+        Couple = TwoQubit(couple)
+        for alpha in Alpha:
+            for c in LightSpeed:
+                print('--------------')
+                Lcouple = Couple.MirrorLength(c, alpha)
+                print('%s couple,c = %sx10^8m/s,alpha = %s MHz,length = %s mm' % (
+                couple,Lcouple[0] / 10 ** 8, Lcouple[1] / 10 ** 6, Lcouple[2]))
+                Freq01Couple = Couple.Freq01()
+                Freq12Couple = Couple.Freq12()
+                print("frequency 01 limit: %sGHz,n = %s" % (Freq01Couple[0] / 10 ** 9, Freq01Couple[2] - 1))
+                print("frequency 12 limit: %sGHz,n = %s" % (Freq12Couple[0] / 10 ** 9, Freq01Couple[2] - 1))
+                for k in range(1,4):
+                    LcCouple = Couple.AvoidAnti(k)
+                    print("k = %s,lc = %s mm,fc = %s GHz"%(k,LcCouple[0],LcCouple[1]/10**6))
+                print('<=======>')
+                print("frequency second: %sGHz,n = %s" % (Freq01Couple[1] / 10 ** 9, Freq01Couple[2]- 2))
+                print("frequency 12 second: %sGHz,n = %s" % (Freq12Couple[1] / 10 ** 9, Freq01Couple[2] - 2))
+                print('--------------')
 
-    Weak = TwoQubit('weak')
-    for alpha in Alpha:
-        for c in LightSpeed:
-            print('--------------')
-            Lweak = Weak.MirrorLength(c, alpha)
-            print('%s couple,c = %sx10^8m/s,alpha = %s MHz,length = %s mm' % (
-            'weak',Lweak[0] / 10 ** 8, Lweak[1] / 10 ** 6, Lweak[2]))
-            Freq01Weak = Weak.Freq01()
-            Freq12Weak = Weak.Freq12()
-            print("frequency 01 limit: %sGHz,n = %s" % (Freq01Weak[0] / 10 ** 9, Freq01Weak[2] - 1))
-            print("frequency 12 limit: %sGHz,n = %s" % (Freq12Weak[0] / 10 ** 9, Freq01Weak[2] - 1))
-            for k in range(3):
-                LcWeak = Weak.AvoidAnti(k)
-                print("k = %s,lc = %s mm"%(k,LcWeak))
-            print('<=======>')
-            print("frequency second: %sGHz,n = %s" % (Freq01Weak[1] / 10 ** 9, Freq01Weak[2]- 2))
-            print("frequency 12 second: %sGHz,n = %s" % (Freq12Weak[1] / 10 ** 9, Freq01Weak[2] - 2))
-            print('--------------')
 
-
-    Strong = TwoQubit('strong')
-    for alpha in Alpha:
-        for c in LightSpeed:
-            print('--------------')
-            Lstrong = Strong.MirrorLength(c, alpha)
-            print('%s couple,c = %s x10^8m/s,alpha = %s MHz,length = %s mm' % (
-                'weak', Lstrong[0] / 10 ** 8, Lstrong[1] / 10 ** 6, Lstrong[2]))
-            Freq01Strong = Strong.Freq01()
-            Freq12Strong = Strong.Freq12()
-            print("frequency 01 limit: %sGHz,n = %s" % (Freq01Strong[0] / 10 ** 9, Freq01Strong[2] - 1))
-            print("frequency 12 limit: %sGHz,n = %s" % (Freq12Strong[0] / 10 ** 9, Freq01Strong[2] - 1))
-            for k in range(3):
-                LcStrong = Strong.AvoidAnti(k)
-                print("k = %s,lc = %s mm"%(k,LcStrong))
-            print('<=======>')
-            print("frequency second: %sGHz,n = %s" % (Freq01Strong[1] / 10 ** 9, Freq01Strong[2] - 2))
-            print("frequency 12 second: %sGHz,n = %s" % (Freq12Strong[1] / 10 ** 9, Freq01Strong[2] - 2))
-            print('--------------')
